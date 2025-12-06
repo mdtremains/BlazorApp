@@ -1,0 +1,128 @@
+@page "/pie-charts"
+@using Models
+@using System.Data
+@using Shared
+@* @using ExcelDataReader *@
+@inject IWebHostEnvironment Env
+@rendermode InteractiveServer
+
+<h3>Monthly Debits / Credits Pie Charts</h3>
+
+<!-- Use InputFile component instead of plain <input type="file"> -->
+@* <InputFile OnChange="OnInputFileChangeInputFile" accept=".xlsx,.xls,.csv" /> *@
+
+<button class="btn btn-primary" @onclick="LoadTestData">LoadTestData</button>
+
+@if (items is null || items.Count == 0)
+{
+    <p>No data loaded. Upload an Excel (.xlsx/.xls) with columns containing 'Debit' and 'Credit' (and a label column like 'Month').</p>
+}
+else
+{
+    <div>
+        @foreach (var m in items)
+        {
+            <MonthlyDebitCreditPie Debits="@m.Debits"
+                                          Credits="@m.Credits"
+                                          Label="@m.Label"
+                                          Size="140" />
+        }
+    </div>
+}
+
+@code {
+    private List<MonthlyData> items = new();
+
+    // Remove the old OnInputFileChange handler and use OnInputFileChangeInputFile instead
+
+    private async Task OnInputFileChangeInputFile(Microsoft.AspNetCore.Components.Forms.InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        using var stream = file.OpenReadStream(maxAllowedSize: 10_000_000);
+        await LoadFromExcel(stream);
+    }
+
+    private async Task LoadTestData()
+    {
+        items.Clear();
+
+        items.Add(new MonthlyData { Label = "January", Debits = 100m, Credits = 1200m });
+        items.Add(new MonthlyData { Label = "February", Debits = 200m, Credits = 1100m });
+        items.Add(new MonthlyData { Label = "March", Debits = 300m, Credits = 1000m });
+        items.Add(new MonthlyData { Label = "April", Debits = 400m, Credits = 900m });
+        items.Add(new MonthlyData { Label = "May", Debits = 500m, Credits = 800m });
+        items.Add(new MonthlyData { Label = "June", Debits = 600m, Credits = 700m });
+        items.Add(new MonthlyData { Label = "July", Debits = 700m, Credits = 600m });
+        items.Add(new MonthlyData { Label = "August", Debits = 800m, Credits = 500m });
+        items.Add(new MonthlyData { Label = "September", Debits = 900m, Credits = 400m });
+        items.Add(new MonthlyData { Label = "October", Debits = 1000m, Credits = 300m });
+        items.Add(new MonthlyData { Label = "November", Debits = 1100m, Credits = 200m });
+        items.Add(new MonthlyData { Label = "December", Debits = 1200m, Credits = 100m });
+    }
+
+    
+    private async Task LoadFromExcel(Stream stream)
+    {
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+        // using var reader = ExcelReaderFactory.CreateReader(stream);
+        // var conf = new ExcelDataSetConfiguration
+        // {
+        //     ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = true }
+        // };
+
+        // var ds = reader.AsDataSet(conf);
+        // if (ds.Tables.Count == 0) return;
+
+        // var table = ds.Tables[0];
+        // items.Clear();
+
+        // int labelCol = -1, debitCol = -1, creditCol = -1;
+        // for (int c = 0; c < table.Columns.Count; c++)
+        // {
+        //     var colName = table.Columns[c].ColumnName?.ToLowerInvariant() ?? string.Empty;
+        //     if (labelCol == -1 && (colName.Contains("month") || colName.Contains("label") || colName.Contains("date") || colName.Contains("description")))
+        //         labelCol = c;
+        //     if (debitCol == -1 && colName.Contains("debit"))
+        //         debitCol = c;
+        //     if (creditCol == -1 && colName.Contains("credit"))
+        //         creditCol = c;
+        // }
+
+        // if (labelCol == -1) labelCol = 0;
+
+        // foreach (DataRow row in table.Rows)
+        // {
+        //     try
+        //     {
+        //         var label = row[labelCol]?.ToString() ?? string.Empty;
+        //         var debit = TryGetDecimalFromRow(row, debitCol);
+        //         var credit = TryGetDecimalFromRow(row, creditCol);
+
+        //         items.Add(new MonthlyData { Label = label, Debits = debit, Credits = credit });
+        //     }
+        //     catch
+        //     {
+        //     }
+        // }
+
+
+        await InvokeAsync(StateHasChanged);
+    }
+   
+
+    private decimal TryGetDecimalFromRow(DataRow row, int colIndex)
+    {
+        if (colIndex >= 0 && colIndex < row.Table.Columns.Count)
+        {
+            var raw = row[colIndex];
+            if (raw == null || raw == DBNull.Value) return 0m;
+            if (raw is double d) return (decimal)d;
+            if (raw is float f) return (decimal)f;
+            if (decimal.TryParse(raw.ToString(), out var dec)) return dec;
+            var s = System.Text.RegularExpressions.Regex.Replace(raw.ToString(), @"[^\d\.\-]", "");
+            if (decimal.TryParse(s, out var dec2)) return dec2;
+        }
+        return 0m;
+    }
+}

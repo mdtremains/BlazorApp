@@ -8,6 +8,9 @@ builder.Services.AddRazorComponents()
 
 var app = builder.Build();
 
+// somewhere at startup (e.g., before building the host) (MDT 120525, piecharts)
+System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

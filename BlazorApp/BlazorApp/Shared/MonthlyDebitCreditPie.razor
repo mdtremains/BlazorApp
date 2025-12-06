@@ -1,0 +1,70 @@
+@using System.Globalization
+@namespace Shared
+
+<div class="pie-wrap" style="width:@SizePx;height:@SizePx">
+    <svg width="@Size" height="@Size" viewBox="0 0 @Size @Size" role="img" aria-label="@Label">
+        <g transform="rotate(-90 @Center @Center)">
+            <!-- background ring -->
+            <circle cx="@Center" cy="@Center" r="@Radius" stroke="#e6e6e6" stroke-width="@StrokeWidth" fill="none" />
+            <!-- credits (green) -->
+            <circle cx="@Center" cy="@Center" r="@Radius"
+                    stroke="#28a745"
+                    stroke-width="@StrokeWidth"
+                    stroke-linecap="butt"
+                    fill="none"
+                    stroke-dasharray="@CreditDashArray"
+                    stroke-dashoffset="0">
+                <title>@($"{Label}: Credits {Credits.ToString("C", CultureInfo.CurrentCulture)} ({CreditsPercent:P1})")</title>
+            </circle>
+            <!-- debits (red) -->
+            <circle cx="@Center" cy="@Center" r="@Radius"
+                    stroke="#dc3545"
+                    stroke-width="@StrokeWidth"
+                    stroke-linecap="butt"
+                    fill="none"
+                    stroke-dasharray="@DebitDashArray"
+                    stroke-dashoffset="@DebitOffset">
+                <title>@($"{Label}: Debits {Debits.ToString("C", CultureInfo.CurrentCulture)} ({DebitsPercent:P1})")</title>
+            </circle>
+        </g>
+
+        <!-- center text -->
+        <text x="50%" y="46%" text-anchor="middle" font-size="@LabelFontSize" fill="#222">@Label</text>
+        <text x="50%" y="70%" text-anchor="middle" font-size="@ValueFontSize" fill="#222">@($"{Credits.ToString("C", CultureInfo.CurrentCulture)} / {Debits.ToString("C", CultureInfo.CurrentCulture)}")</text>
+    </svg>
+</div>
+
+@code {
+    [Parameter] public decimal Debits { get; set; }
+    [Parameter] public decimal Credits { get; set; }
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public int Size { get; set; } = 140;
+
+    private double Total => (double)(Debits + Credits);
+    private double CreditsPercent => Total <= 0 ? 0.5 : (double)Credits / Total;
+    private double DebitsPercent => 1 - CreditsPercent;
+
+    private double StrokeWidth => Math.Max(10, Size * 0.18);
+    private double Radius => (Size / 2.0) - (StrokeWidth / 2.0);
+    private double Center => Size / 2.0;
+    private string SizePx => $"{Size}px";
+
+    private double Circumference => 2 * Math.PI * Radius;
+
+    private string CreditDashArray => FormatDash(CreditsPercent);
+    private string DebitDashArray => FormatDash(DebitsPercent);
+    private string DebitOffset => (-CreditsPercent * Circumference).ToString("0.###", CultureInfo.InvariantCulture);
+
+    private string FormatDash(double pct) =>
+        $"{(pct * Circumference).ToString("0.###", CultureInfo.InvariantCulture)} {Circumference.ToString("0.###", CultureInfo.InvariantCulture)}";
+
+    private string LabelFontSize => $"{Math.Max(10, Size / 10)}px";
+    private string ValueFontSize => $"{Math.Max(12, Size / 8)}px";
+}
+<style>
+.pie-wrap {
+  display: inline-block;
+  margin: 8px;
+  vertical-align: middle;
+}
+</style>
